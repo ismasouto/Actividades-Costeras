@@ -1,0 +1,13 @@
+# Provisioning de dashboards: Grafana carga los JSON de esta misma carpeta.
+apiVersion: 1
+providers:
+  - name: "Actividades Costeras"
+    orgId: 1
+    folder: "Actividades Costeras"
+    folderUid: "actividades-costeras"
+    type: file
+    disableDeletion: false
+    updateIntervalSeconds: 30
+    allowUiUpdates: true
+    options:
+      path: /etc/grafana/provisioning/dashboards

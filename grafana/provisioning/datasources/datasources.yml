@@ -1,0 +1,20 @@
+# Grafana provisioning: datasource PostgreSQL.
+# Al arrancar, Grafana se conecta solo a la BD del proyecto.
+
+apiVersion: 1
+datasources:
+  - name: PostgreSQL
+    uid: postgres
+    type: postgres
+    access: proxy
+    url: postgres:5432
+    database: costa
+    user: costa
+    secureJsonData:
+      password: costa_secret
+    jsonData:
+      sslmode: disable
+      maxOpenConns: 10
+      maxIdleConns: 5
+    isDefault: true
+    editable: false

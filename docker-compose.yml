@@ -1,0 +1,60 @@
+# Docker Compose para levantar de forma reproducible:
+# - PostgreSQL (base de datos)
+# - Grafana (dashboards y alertas)
+# - Backend (API que ingesta datos y calcula recomendación 1-10)
+#
+# Uso: docker compose up -d
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: costa-postgres
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-costa}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-costa_secret}
+      POSTGRES_DB: ${POSTGRES_DB:-costa}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./backend/scripts/init_db.sql:/docker-entrypoint-initdb.d/01_init.sql:ro
+    ports:
+      # Publicar en 5433 para no chocar con otro PostgreSQL que use 5432 en el host
+      - "5433:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-costa} -d ${POSTGRES_DB:-costa}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  grafana:
+    image: grafana/grafana:11.0.0
+    container_name: costa-grafana
+    environment:
+      GF_SECURITY_ADMIN_USER: ${GRAFANA_ADMIN_USER:-admin}
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD:-admin}
+      GF_USERS_ALLOW_SIGN_UP: "false"
+      GF_SERVER_ROOT_URL: "http://localhost:3000"
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./grafana/provisioning:/etc/grafana/provisioning:ro
+    ports:
+      - "3000:3000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  backend:
+    build: ./backend
+    container_name: costa-backend
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER:-costa}:${POSTGRES_PASSWORD:-costa_secret}@postgres:5432/${POSTGRES_DB:-costa}
+      LOCATION_ID: ${LOCATION_ID:-a_coruna}
+    ports:
+      # 8001 en el host para no chocar con otro servicio en 8000
+      - "8001:8000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+volumes:
+  postgres_data:
+  grafana_data:
